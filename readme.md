@@ -1,1 +1,2 @@
-upgrade kernel 3.4.113
+upgrade kernel 3.4.113 logan
+
