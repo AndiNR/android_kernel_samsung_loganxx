@@ -1,0 +1,38 @@
+--- fs/ecryptfs/file.c
++++ fs/ecryptfs/file.c
+@@ -257,32 +278,9 @@
+ 		rc = 0;
+ 		goto out;
+ 	}
+-	mutex_lock(&crypt_stat->cs_mutex);
+-	if (!(crypt_stat->flags & ECRYPTFS_POLICY_APPLIED)
+-	    || !(crypt_stat->flags & ECRYPTFS_KEY_VALID)) {
+-		rc = ecryptfs_read_metadata(ecryptfs_dentry);
+-		if (rc) {
+-			ecryptfs_printk(KERN_DEBUG,
+-					"Valid headers not found\n");
+-			if (!(mount_crypt_stat->flags
+-			      & ECRYPTFS_PLAINTEXT_PASSTHROUGH_ENABLED)) {
+-				rc = -EIO;
+-				printk(KERN_WARNING "Either the lower file "
+-				       "is not in a valid eCryptfs format, "
+-				       "or the key could not be retrieved. "
+-				       "Plaintext passthrough mode is not "
+-				       "enabled; returning -EIO\n");
+-				mutex_unlock(&crypt_stat->cs_mutex);
+-				goto out_put;
+-			}
+-			rc = 0;
+-			crypt_stat->flags &= ~(ECRYPTFS_I_SIZE_INITIALIZED
+-					       | ECRYPTFS_ENCRYPTED);
+-			mutex_unlock(&crypt_stat->cs_mutex);
+-			goto out;
+-		}
+-	}
+-	mutex_unlock(&crypt_stat->cs_mutex);
++	rc = read_or_initialize_metadata(ecryptfs_dentry);
++	if (rc)
++		goto out_put;
+ 	ecryptfs_printk(KERN_DEBUG, "inode w/ addr = [0x%p], i_ino = "
+ 			"[0x%.16lx] size: [0x%.16llx]\n", inode, inode->i_ino,
+ 			(unsigned long long)i_size_read(inode));
