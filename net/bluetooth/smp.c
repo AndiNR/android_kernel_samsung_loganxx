@@ -325,8 +325,11 @@ static int tk_request(struct l2cap_conn *conn, u8 remote_oob, u8 auth,
 	}
 
 	/* Not Just Works/Confirm results in MITM Authentication */
-	if (method != JUST_CFM)
+	if (method != JUST_CFM) {
 		set_bit(SMP_FLAG_MITM_AUTH, &smp->smp_flags);
+		if (hcon->pending_sec_level < BT_SECURITY_HIGH)
+			hcon->pending_sec_level = BT_SECURITY_HIGH;
+	}
 
 	/* If both devices have Keyoard-Display I/O, the master
 	 * Confirms and the slave Enters the passkey.
@@ -851,6 +854,19 @@ int smp_sig_channel(struct l2cap_conn *conn, struct sk_buff *skb)
 	}
 
 	skb_pull(skb, sizeof(code));
+
+	/*
+	 * The SMP context must be initialized for all other PDUs except
+	 * pairing and security requests. If we get any other PDU when
+	 * not initialized simply disconnect (done if this function
+	 * returns an error).
+	 */
+	if (code != SMP_CMD_PAIRING_REQ && code != SMP_CMD_SECURITY_REQ &&
+	    !conn->smp_chan) {
+		BT_ERR("Unexpected SMP command 0x%02x. Disconnecting.", code);
+		kfree_skb(skb);
+		return -ENOTSUPP;
+	}
 
 	switch (code) {
 	case SMP_CMD_PAIRING_REQ:

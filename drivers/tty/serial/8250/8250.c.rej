@@ -1,0 +1,14 @@
+--- drivers/tty/serial/8250/8250.c
++++ drivers/tty/serial/8250/8250.c
+@@ -1497,6 +1524,11 @@
+ 		port->icount.tx++;
+ 		if (uart_circ_empty(xmit))
+ 			break;
++		if (up->capabilities & UART_CAP_HFIFO) {
++			if ((serial_port_in(port, UART_LSR) & BOTH_EMPTY) !=
++			    BOTH_EMPTY)
++				break;
++		}
+ 	} while (--count > 0);
+ 
+ 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
